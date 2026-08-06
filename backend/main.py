@@ -1,3 +1,11 @@
+import sys
+
+# Force UTF-8 stdout/stderr so Gujarati text and emoji in logs never crash
+# the server on Windows consoles/terminals that default to cp1252.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+
 from fastapi import FastAPI
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,18 +17,15 @@ load_dotenv()
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="AQUA - AI Voice Agent 🌊",
-    description="Transcribe and generate AI voice with Murf and AssemblyAI",
+    title="VoiceForBharat - Gujarati Voice Agent 🎙️",
+    description="Gujarati Voice Agent built with Murf Falcon TTS and Gemini for #VoiceForBharat",
     version="1.0.0",
 )
 
 # Allow frontend access (CORS)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://127.0.0.1:3000",
-        "http://localhost:3000"
-    ],
+    allow_origins=["*"],  # Allows requests from Live Server (port 5500/5501) or any origin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

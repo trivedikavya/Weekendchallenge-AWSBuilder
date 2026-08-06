@@ -12,15 +12,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const startBtn = document.getElementById("start-btn");
   const statusLabel = document.getElementById("status-label");
   const agentAudio = document.getElementById("agent-audio");
-  
-  const scenarioCard = document.getElementById("scenario-card");
-  const scenarioText = document.getElementById("scenario-text");
-  const roundBadge = document.getElementById("round-badge");
 
   let mediaRecorder;
   let audioChunks = [];
   let isRecording = false;
 
+  // Track conversation state
   let currentState = { phase: "intro" };
 
   // --- 1. START CONNECTION ---
@@ -37,7 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const res = await axios.post("http://localhost:5000/start-session");
       
-      // Initial Response (Ask Name)
+      // Initial Response
       agentText.textContent = res.data.text;
       
       if (res.data.initial_state) currentState = res.data.initial_state;
@@ -46,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
       
     } catch (err) {
       console.error(err);
-      agentText.textContent = "Error connecting to studio server.";
+      agentText.textContent = "Error connecting to the agent server.";
     }
   });
 
@@ -62,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
         mediaRecorder.onstop = async () => {
           // UI: Thinking State
           statusLabel.textContent = "Thinking...";
-          statusLabel.classList.add("text-purple-400");
+          statusLabel.classList.add("text-orange-400");
           micBtn.innerHTML = "✨"; 
           micBtn.disabled = true;
           micBtn.classList.remove("pulse-record");
@@ -81,34 +78,33 @@ document.addEventListener("DOMContentLoaded", () => {
                 playerBubble.classList.remove("hidden");
             }
 
-            // 2. Show Host Text
+            // 2. Show Agent Text
             agentText.textContent = res.data.ai_text;
 
-            // 3. Update State & UI
+            // 3. Update State
             if (res.data.updated_state) {
                 currentState = res.data.updated_state;
-                renderGameUI(currentState);
             }
 
-            // 4. Handle Audio (Playback or Fallback)
+            // 4. Handle Audio
             handleAudio(res.data);
 
           } catch (err) {
             console.error(err);
-            agentText.textContent = "Technical difficulties on set. Please retry.";
+            agentText.textContent = "Technical difficulties. Please retry.";
             resetMicUI();
           }
         };
 
         mediaRecorder.start();
         isRecording = true;
-        statusLabel.textContent = "Recording...";
+        statusLabel.textContent = "Listening...";
         statusLabel.classList.add("text-red-400");
         micBtn.innerHTML = "⏹️"; 
         micBtn.classList.add("pulse-record");
 
       } catch (err) {
-        alert("Microphone denied. Please check browser settings.");
+        alert("Microphone access denied. Please check your browser settings.");
       }
 
     } else {
@@ -118,30 +114,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // --- HELPERS ---
-
-  function renderGameUI(state) {
-    // Show Scenario Card if playing
-    if (state.current_scenario && state.phase !== "summary" && state.phase !== "ended" && state.phase !== "intro") {
-        scenarioCard.classList.remove("hidden");
-        scenarioText.textContent = `"${state.current_scenario}"`;
-    } else {
-        scenarioCard.classList.add("hidden");
-    }
-
-    // Show Round Badge
-    if (state.phase === "playing") {
-        roundBadge.classList.remove("hidden");
-        const current = (state.round || 0) + 1;
-        const max = state.max_rounds || 3;
-        roundBadge.textContent = `ROUND ${current} / ${max}`;
-    } else {
-        roundBadge.classList.add("hidden");
-    }
-  }
-
   function handleAudio(data) {
-      if (data.audioUrl) {
-          playAudio(data.audioUrl);
+      // Check for both camelCase and snake_case depending on backend payload
+      const audioSrc = data.audioUrl || data.audio_url; 
+      
+      if (audioSrc) {
+          playAudio(audioSrc);
       } else {
           // Browser TTS Fallback
           speakNative(data.ai_text || data.text);
@@ -151,8 +129,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function playAudio(url) {
     agentAudio.src = url;
     statusLabel.textContent = "Speaking...";
-    statusLabel.classList.remove("text-purple-400", "text-red-400");
-    statusLabel.classList.add("text-cyan-400");
+    statusLabel.classList.remove("text-orange-400", "text-red-400");
+    statusLabel.classList.add("text-green-400");
     
     agentAudio.play();
     agentAudio.onended = resetMicUI;
@@ -160,9 +138,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function speakNative(text) {
-      console.log("Using Browser TTS");
+      console.log("Using Browser TTS fallback");
       statusLabel.textContent = "Speaking...";
-      statusLabel.classList.add("text-cyan-400");
+      statusLabel.classList.add("text-green-400");
       
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 1.1; 
@@ -172,7 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function resetMicUI() {
     statusLabel.textContent = "Ready";
-    statusLabel.classList.remove("text-purple-400", "text-red-400", "text-cyan-400");
+    statusLabel.classList.remove("text-orange-400", "text-red-400", "text-green-400");
     statusLabel.classList.add("text-slate-500");
     
     micBtn.disabled = false;

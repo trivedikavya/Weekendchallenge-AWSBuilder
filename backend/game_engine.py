@@ -1,114 +1,57 @@
 import json
-import random
 
-# --- SCENARIOS LIST ---
-SCENARIOS = [
-    "You are a barista telling a customer their latte is a portal to another dimension.",
-    "You are a time-travelling tour guide explaining TikTok to a peasant from 1400 AD.",
-    "You are a cat trying to convince a dog to let you blame him for the broken vase.",
-    "You are an alien tour guide pretending to be human but getting basic facts wrong.",
-    "You are a waiter calmly explaining that the customer's soup is actually a magical potion."
-]
+# Day 1 - #VoiceForBharat
+# Simple flow: Diya asks the user's name, the user answers, Diya greets them by
+# name and signs off with "Jay Shri Krishna" + a "see you on Day 2" line, in
+# Gujarati (gu-IN) speech via Murf Falcon 2.
 
 def get_initial_state():
     return {
-        "phase": "intro",        
-        "player_name": "",
-        "round": 0,
-        "max_rounds": 3,         # Game ends after 3 rounds
-        "current_scenario": "",
-        "history": [] 
+        "phase": "intro",
+        "player_name": ""
     }
 
 def get_system_prompt(state, user_text):
-    # SAFETY: Default to 'playing' if phase is weird
-    phase = state.get("phase", "playing")
-    
-    # 1. INTRO PHASE
+    phase = state.get("phase", "intro")
+
+    # CRITICAL INSTRUCTION: Forces Gemini to output Gujarati
+    lang_instruction = "CRITICAL: You are Diya, an AI voice agent built for India. You MUST write the 'reply' value entirely in the Gujarati language using the Gujarati script (ગુજરાતી). Never use English in the 'reply' output."
+
     if phase == "intro":
         return f"""
-        You are the host of a chaotic improv game show called 'Improv Battle'.
-        User Input: "{user_text}"
-        
+        You are Diya, a warm and friendly AI voice host.
+        {lang_instruction}
+
+        The user just told you their name in this speech input: "{user_text}"
+
         GOAL:
-        1. Extract name.
-        2. Welcome them.
-        3. Give FIRST Scenario: "{SCENARIOS[0]}"
-        
+        1. Extract ONLY their first name from the input.
+        2. Reply with a short, warm message (1-2 lines) in Gujarati that:
+           - Greets them by their name.
+           - Says "જય શ્રી કૃષ્ણ" (Jay Shri Krishna).
+           - Tells them you will meet them again on "ડે 2" (Day 2).
+        This reply is the FINAL message of today's session.
+
         OUTPUT JSON:
         {{
-            "reply": "Welcome [Name]! Your first scenario is: {SCENARIOS[0]}",
-            "player_name": "extracted_name",
-            "next_phase": "playing",
-            "next_scenario": "{SCENARIOS[0]}"
+            "reply": "(Your warm Gujarati reply greeting them by name, saying 'જય શ્રી કૃષ્ણ', and mentioning you'll meet on Day 2)",
+            "player_name": "extracted_first_name",
+            "next_phase": "ended"
         }}
         """
 
-    # 2. PLAYING PHASE (Now includes Summary Logic)
-    elif phase == "playing":
-        current_round = state.get("round", 0)
-        max_r = state.get("max_rounds", 3)
-        history = state.get("history", [])
-        
-        # Logic: Are we moving to the next round OR ending?
-        next_r_index = current_round + 1
-        is_game_over = next_r_index >= max_r
-        
-        # SAFETY: Cycle scenarios if we run out
-        safe_scenario_idx = next_r_index % len(SCENARIOS)
-        next_scenario = SCENARIOS[safe_scenario_idx]
-
-        if not is_game_over:
-            # --- NORMAL ROUND ---
-            return f"""
-            Host of 'Improv Battle'. 
-            SCENARIO: "{state.get('current_scenario')}"
-            ACT: "{user_text}"
-            
-            GOAL:
-            1. Rate performance (be witty/funny).
-            2. Give next scenario: "{next_scenario}".
-            
-            OUTPUT JSON:
-            {{
-                "reply": "Haha! Good one. Next scenario: {next_scenario}...",
-                "next_phase": "playing",
-                "next_scenario": "{next_scenario}"
-            }}
-            """
-        else:
-            # --- FINAL ROUND (SUMMARY) ---
-            return f"""
-            Host of 'Improv Battle'. THIS IS THE FINAL ROUND.
-            SCENARIO: "{state.get('current_scenario')}"
-            ACT: "{user_text}"
-            PREVIOUS HISTORY: {json.dumps(history)}
-            
-            GOAL:
-            1. Rate the FINAL performance briefly.
-            2. IMMEDIATELY segue into a Grand Summary of the player's entire game style based on History + Final Act.
-            3. Say "Game Over" and thank them.
-            
-            OUTPUT JSON:
-            {{
-                "reply": "Nice finish! Looking back at your game, you are a [Adjective] improviser. You loved [Topic]... Thanks for playing Improv Battle!",
-                "next_phase": "ended",
-                "next_scenario": ""
-            }}
-            """
-
-    # 3. ENDED PHASE (Just in case)
     elif phase == "ended":
         return f"""
-        The game is over. User said: "{user_text}".
-        Just politely say the show is done.
-        
+        {lang_instruction}
+        Today's session has already ended. The user said: "{user_text}"
+        Politely (in one short line) remind them in Gujarati that Day 1 is complete
+        and that you'll meet again on Day 2. Include "જય શ્રી કૃષ્ણ".
+
         OUTPUT JSON:
         {{
-            "reply": "The show is over! Refresh to play again.",
-            "next_phase": "ended",
-            "next_scenario": ""
+            "reply": "જય શ્રી કૃષ્ણ! આજનું સેશન પૂરું થયું છે. આપણે ડે 2 પર મળીશું!",
+            "next_phase": "ended"
         }}
         """
-    
-    return "You are a helpful AI. Just say 'Error in game state, let's reset'."
+
+    return '{ "reply": "એરર આવી છે, કૃપા કરીને ફરી શરૂ કરો." }'

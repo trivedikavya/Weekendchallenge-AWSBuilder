@@ -10,7 +10,7 @@ uploads/
 
 # Compiled Python files
 *.pyc
-_pycache_/
+__pycache__/
 
 # Python runtime specific files (e.g. if you only want the executable ignored)
 *.exe

@@ -1,10 +1,14 @@
 from fastapi import APIRouter, UploadFile, File, Form
 from fastapi.responses import JSONResponse, HTMLResponse
 import os
-import requests
 import json
+import base64
+import asyncio
+import websockets
 import google.generativeai as genai
 import assemblyai as aai
+from indic_transliteration import sanscript
+from indic_transliteration.sanscript import transliterate
 from dotenv import load_dotenv
 import game_engine 
 import re
@@ -15,35 +19,86 @@ load_dotenv()
 router = APIRouter()
 
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-model = genai.GenerativeModel('gemini-2.0-flash')
+# gemini-1.5-flash is deprecated for this API key; gemini-flash-lite-latest is
+# confirmed available and has free-tier quota.
+model = genai.GenerativeModel('gemini-flash-lite-latest')
 
-def generate_murf_speech(text):
-    if not text: return None
-    try:
-        MURF_API_KEY = os.getenv('MURF_AI_API_KEY')
-        url = "https://api.murf.ai/v1/speech/generate"
-        headers = {"api-key": MURF_API_KEY, "Content-Type": "application/json"}
-        clean_text = re.sub(r'[(){}\[\]]', '', text.replace("₹", " Rupees "))
-        payload = {"text": clean_text, "voice_id": "en-US-natalie", "style": "Promo"}
-        
-        response = requests.post(url, headers=headers, data=json.dumps(payload))
-        data = response.json()
-        if isinstance(data, dict): return data.get('audioFile')
+# Murf Falcon 2 - ultra-low-latency streaming TTS (required track TTS engine)
+MURF_FALCON_WS_URL = "wss://global.api.murf.ai/v1/speech/stream-input"
+
+async def generate_murf_speech(text):
+    """Generates Gujarati speech using Murf's Falcon 2 model over WebSocket streaming.
+    Falcon 2's "Diya" (Gujarati) voice is only available via the streaming API,
+    not the legacy REST /v1/speech/generate (Gen2) endpoint."""
+    if not text:
         return None
-    except:
+
+    MURF_API_KEY = os.getenv('MURF_AI_API_KEY')
+    if not MURF_API_KEY:
+        print("Murf API Error: MURF_AI_API_KEY is not set")
+        return None
+
+    # Clean text to prevent TTS errors
+    clean_text = re.sub(r'[(){}\[\]]', '', text.replace("₹", " Rupees "))
+
+    uri = (
+        f"{MURF_FALCON_WS_URL}?api-key={MURF_API_KEY}&model=falcon-2"
+        f"&sample_rate=44100&channel_type=MONO&format=MP3"
+    )
+
+    try:
+        async with websockets.connect(uri, open_timeout=10) as ws:
+            voice_config_msg = {
+                "voice_config": {
+                    "voiceId": "Diya",
+                    "locale": "gu-IN",
+                    "style": "Conversational",
+                    "rate": 0,
+                    "pitch": 0,
+                    "variation": 1
+                }
+            }
+            await ws.send(json.dumps(voice_config_msg))
+            await ws.send(json.dumps({"text": clean_text, "end": True}))
+
+            audio_bytes = b""
+            while True:
+                response = await asyncio.wait_for(ws.recv(), timeout=15)
+                data = json.loads(response)
+
+                if "error" in data:
+                    print(f"Murf Falcon Error: {data['error']}")
+                    return None
+
+                if "audio" in data:
+                    audio_bytes += base64.b64decode(data["audio"])
+
+                if data.get("final"):
+                    break
+
+            if not audio_bytes:
+                return None
+
+            encoded = base64.b64encode(audio_bytes).decode("utf-8")
+            return f"data:audio/mpeg;base64,{encoded}"
+
+    except Exception as e:
+        print(f"TTS Generation Exception: {str(e)}")
         return None
 
 @router.get("/health")
 async def health_check():
-    return HTMLResponse(content="<h1>Improv Host Active 🎭</h1>")
+    return HTMLResponse(content="<h1>VoiceForBharat Host Active 🎙️</h1>")
 
 @router.post("/start-session")
 async def start_session():
     initial_state = game_engine.get_initial_state()
-    greeting = "Welcome to Improv Battle! I'm your host. What's your name?"
+    greeting = "નમસ્તે! હું તમારી એઆઈ હોસ્ટ દીયા છું. તમારું નામ શું છે?"
+    audio_url = await generate_murf_speech(greeting)
+    
     return JSONResponse(content={
         "text": greeting,
-        "audioUrl": generate_murf_speech(greeting),
+        "audioUrl": audio_url,
         "initial_state": initial_state 
     })
 
@@ -55,23 +110,33 @@ async def chat_with_voice(file: UploadFile = File(...), current_state: str = For
         # 1. State Management
         try:
             state = json.loads(current_state)
-            if isinstance(state, list) or "last_search_results" in state:
+            if not isinstance(state, dict) or "phase" not in state:
                 state = game_engine.get_initial_state()
         except:
             state = game_engine.get_initial_state()
 
         # 2. Transcribe
+        # AssemblyAI's Gujarati (gu) speech model transcribes phonetically but
+        # renders output in Devanagari (Hindi) script, not native Gujarati
+        # script — this is a known limitation for lower-resource Indic
+        # languages. We force language_code="gu" for best phonetic accuracy,
+        # then transliterate the Devanagari result into Gujarati script so
+        # what's displayed/used matches the language the user actually spoke.
         audio_data = await file.read()
-        transcript = aai.Transcriber().transcribe(audio_data)
-        user_text = transcript.text or ""
+        stt_config = aai.TranscriptionConfig(
+            language_code="gu",
+            speech_model=aai.SpeechModel.universal
+        )
+        transcript = aai.Transcriber(config=stt_config).transcribe(audio_data)
+        raw_text = transcript.text or ""
+        user_text = transliterate(raw_text, sanscript.DEVANAGARI, sanscript.GUJARATI)
         print(f"🎤 User: {user_text}")
 
         # 3. Generate Content
         system_prompt = game_engine.get_system_prompt(state, user_text)
         
-        # CRITICAL FIX: Handle empty prompt case
         if not system_prompt:
-            reply_text = "Whoops, I lost my train of thought. Let's start over."
+            reply_text = "માફ કરજો, મને સમજાયું નહીં. ચાલો ફરી શરૂ કરીએ."
             state = game_engine.get_initial_state()
         else:
             result = model.generate_content(
@@ -81,24 +146,20 @@ async def chat_with_voice(file: UploadFile = File(...), current_state: str = For
             ai_response = json.loads(result.text)
             if isinstance(ai_response, list): ai_response = ai_response[0] if ai_response else {}
             
-            reply_text = ai_response.get("reply", "Let's continue.")
+            reply_text = ai_response.get("reply", "ચાલો આગળ વધીએ.")
             
             # Update State
             if "player_name" in ai_response: state["player_name"] = ai_response["player_name"]
-            
-            # Update History & Rounds
-            if state.get("phase") == "playing":
-                state["history"].append({"action": user_text, "feedback": reply_text})
-                state["round"] = state.get("round", 0) + 1 # Increment round
-
             state["phase"] = ai_response.get("next_phase", state["phase"])
-            state["current_scenario"] = ai_response.get("next_scenario", "")
 
         print(f"🎭 Host: {reply_text}")
 
+        audio_url = await generate_murf_speech(reply_text)
+
         return {
             "ai_text": reply_text,
-            "audio_url": generate_murf_speech(reply_text),
+            "user_transcript": user_text,
+            "audioUrl": audio_url,
             "updated_state": state
         }
 

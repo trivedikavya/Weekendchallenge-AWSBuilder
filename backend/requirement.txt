@@ -5,3 +5,5 @@ requests
 python-multipart>=0.0.5
 assemblyai
 google-generativeai
+websockets
+indic-transliteration
