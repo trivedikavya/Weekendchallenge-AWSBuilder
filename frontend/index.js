@@ -12,13 +12,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const startBtn = document.getElementById("start-btn");
   const statusLabel = document.getElementById("status-label");
   const agentAudio = document.getElementById("agent-audio");
+  const escalationBanner = document.getElementById("escalation-banner");
 
   let mediaRecorder;
   let audioChunks = [];
   let isRecording = false;
 
-  // Track conversation state
-  let currentState = { phase: "intro" };
+  // Track conversation state (Health Access agent: ongoing history-based chat)
+  let currentState = { phase: "active", history: [] };
 
   // --- 1. START CONNECTION ---
   startBtn.addEventListener("click", async () => {
@@ -81,12 +82,21 @@ document.addEventListener("DOMContentLoaded", () => {
             // 2. Show Agent Text
             agentText.textContent = res.data.ai_text;
 
-            // 3. Update State
+            // 3. Guardrail: show/hide the emergency escalation banner
+            if (res.data.escalate) {
+                escalationBanner.classList.remove("hidden");
+                escalationBanner.classList.add("flex");
+            } else {
+                escalationBanner.classList.add("hidden");
+                escalationBanner.classList.remove("flex");
+            }
+
+            // 4. Update State
             if (res.data.updated_state) {
                 currentState = res.data.updated_state;
             }
 
-            // 4. Handle Audio
+            // 5. Handle Audio
             handleAudio(res.data);
 
           } catch (err) {

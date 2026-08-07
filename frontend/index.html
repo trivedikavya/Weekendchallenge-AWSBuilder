@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>VoiceForBharat - Gujarati Agent</title>
+  <title>Arogya Sathi - VoiceForBharat Health Access Agent</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
@@ -30,49 +30,67 @@
   </div>
 
   <!-- Header -->
-  <header class="w-full max-w-2xl flex flex-col items-center text-center mb-10 fade-in">
+  <header class="w-full max-w-2xl flex flex-col items-center text-center mb-6 fade-in">
     <h1 class="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-400 via-white to-green-400 pb-2">
-      #VoiceForBharat
+      🩺 આરોગ્ય સાથી
     </h1>
-    <p class="text-sm text-slate-400 tracking-widest mt-1 uppercase">Gujarati AI Voice Assistant</p>
+    <p class="text-sm text-slate-400 tracking-widest mt-1 uppercase">#VoiceForBharat · Day 2 · Health Access Companion</p>
   </header>
+
+  <!-- Persona / Guardrail Disclaimer -->
+  <div class="w-full max-w-2xl mb-6 fade-in">
+    <div class="bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs md:text-sm rounded-xl px-4 py-3 flex items-start gap-2">
+      <span class="text-base leading-none">⚠️</span>
+      <p>
+        <strong>હું ડોક્ટર નથી.</strong> હું નિદાન કરતી નથી કે દવા સૂચવતી નથી.
+        કટોકટીમાં તરત જ <strong>108</strong> પર કૉલ કરો.
+        <span class="opacity-70">(I am not a doctor. I don't diagnose or prescribe medicine. In an emergency, call 108 immediately.)</span>
+      </p>
+    </div>
+  </div>
 
   <main class="w-full max-w-2xl flex-1 flex flex-col gap-6 relative z-10">
     
     <!-- START SCREEN -->
     <div id="join-screen" class="bg-slate-800/50 backdrop-blur-md border border-slate-700 p-10 rounded-2xl text-center fade-in shadow-2xl">
-      <h2 class="text-2xl font-bold mb-4 display-font text-white">Welcome, Kavya!</h2>
-      <p class="text-slate-400 mb-8">Click start below to connect to Diya.</p>
+      <h2 class="text-2xl font-bold mb-4 display-font text-white">તમારી આરોગ્ય સાથી સાથે વાત કરો</h2>
+      <p class="text-slate-400 mb-8">Talk to your AI health-access companion. She'll help you figure out your next step — not diagnose or prescribe.</p>
       
       <button id="start-btn" 
               class="w-full bg-gradient-to-r from-orange-600 to-green-600 hover:from-orange-500 hover:to-green-500 text-white font-bold py-4 rounded-xl text-lg transition-all transform hover:scale-[1.02] shadow-lg">
-        CONNECT TO AGENT
+        CONNECT TO AROGYA SATHI
       </button>
     </div>
 
     <!-- CHAT STAGE -->
     <div id="game-stage" class="hidden flex flex-col gap-6 w-full fade-in">
-      
+
+      <!-- Escalation Alert (guardrail: red-flag symptoms) -->
+      <div id="escalation-banner" class="hidden bg-red-600/90 border border-red-400 text-white text-sm md:text-base font-semibold rounded-xl px-5 py-4 items-center gap-3 fade-in">
+        <span class="text-2xl">🚨</span>
+        <span>તાત્કાલિક નજીકની હોસ્પિટલમાં જાવ અથવા <strong>108</strong> પર કૉલ કરો. Please seek emergency medical help now.</span>
+      </div>
+
       <!-- Dialogue Area -->
       <div class="flex flex-col gap-4 min-h-[150px]">
         
-        <!-- Agent (Diya) -->
+        <!-- Agent (Arogya Sathi) -->
         <div class="flex items-start gap-4 fade-in">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-green-600 flex items-center justify-center text-xl shadow-lg shrink-0 border border-white/10">🤖</div>
+          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-green-600 flex items-center justify-center text-xl shadow-lg shrink-0 border border-white/10">🩺</div>
           <div class="bg-slate-800/80 p-5 rounded-2xl rounded-tl-none border border-slate-700 shadow-md flex-1">
             <div class="flex justify-between items-center mb-2">
-              <p class="text-xs font-bold text-orange-400 uppercase tracking-wider">Diya</p>
+              <p class="text-xs font-bold text-orange-400 uppercase tracking-wider">Arogya Sathi</p>
               <p id="status-label" class="text-[10px] font-bold text-slate-500 uppercase bg-slate-900/50 px-2 py-0.5 rounded">Ready</p>
             </div>
             <p id="agent-text" class="text-slate-300 text-lg leading-relaxed font-light">Waiting...</p>
           </div>
         </div>
 
-        <!-- Player -->
+        <!-- Caller -->
         <div id="player-bubble" class="flex items-start gap-4 flex-row-reverse hidden fade-in">
           <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-xl shadow-lg shrink-0 border border-white/10">👤</div>
           <div class="bg-slate-700/40 p-5 rounded-2xl rounded-tr-none border border-slate-600/50 flex-1">
-            <p class="text-xs font-bold text-green-400 uppercase mb-2 tracking-wider text-right">Kavya</p>
+            <p class="text-xs font-bold text-green-400 uppercase mb-2 tracking-wider text-right">You</p>
             <p id="player-text" class="text-slate-200 text-lg leading-relaxed italic text-right">...</p>
           </div>
         </div>

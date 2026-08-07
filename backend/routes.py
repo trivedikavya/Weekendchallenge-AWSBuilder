@@ -10,7 +10,7 @@ import assemblyai as aai
 from indic_transliteration import sanscript
 from indic_transliteration.sanscript import transliterate
 from dotenv import load_dotenv
-import game_engine 
+import health_agent
 import re
 import traceback
 
@@ -92,14 +92,14 @@ async def health_check():
 
 @router.post("/start-session")
 async def start_session():
-    initial_state = game_engine.get_initial_state()
-    greeting = "નમસ્તે! હું તમારી એઆઈ હોસ્ટ દીયા છું. તમારું નામ શું છે?"
+    initial_state = health_agent.get_initial_state()
+    greeting = health_agent.GREETING
     audio_url = await generate_murf_speech(greeting)
-    
+
     return JSONResponse(content={
         "text": greeting,
         "audioUrl": audio_url,
-        "initial_state": initial_state 
+        "initial_state": initial_state
     })
 
 @router.post("/chat-with-voice")
@@ -110,10 +110,10 @@ async def chat_with_voice(file: UploadFile = File(...), current_state: str = For
         # 1. State Management
         try:
             state = json.loads(current_state)
-            if not isinstance(state, dict) or "phase" not in state:
-                state = game_engine.get_initial_state()
+            if not isinstance(state, dict) or "history" not in state:
+                state = health_agent.get_initial_state()
         except:
-            state = game_engine.get_initial_state()
+            state = health_agent.get_initial_state()
 
         # 2. Transcribe
         # AssemblyAI's Gujarati (gu) speech model transcribes phonetically but
@@ -133,32 +133,39 @@ async def chat_with_voice(file: UploadFile = File(...), current_state: str = For
         print(f"🎤 User: {user_text}")
 
         # 3. Generate Content
-        system_prompt = game_engine.get_system_prompt(state, user_text)
-        
-        if not system_prompt:
-            reply_text = "માફ કરજો, મને સમજાયું નહીં. ચાલો ફરી શરૂ કરીએ."
-            state = game_engine.get_initial_state()
+        if not user_text.strip():
+            reply_text = "માફ કરશો, મને સંભળાયું નહીં. શું તમે ફરી બોલી શકશો?"
+            escalate = False
         else:
+            system_prompt = health_agent.get_system_prompt(state, user_text)
             result = model.generate_content(
-                system_prompt, 
+                system_prompt,
                 generation_config={"response_mime_type": "application/json"}
             )
             ai_response = json.loads(result.text)
             if isinstance(ai_response, list): ai_response = ai_response[0] if ai_response else {}
-            
-            reply_text = ai_response.get("reply", "ચાલો આગળ વધીએ.")
-            
-            # Update State
-            if "player_name" in ai_response: state["player_name"] = ai_response["player_name"]
-            state["phase"] = ai_response.get("next_phase", state["phase"])
 
-        print(f"🎭 Host: {reply_text}")
+            escalate = bool(ai_response.get("escalate", False))
+
+            # Guardrail: the emergency escalation script is deterministic and
+            # is never left to the model to paraphrase.
+            if escalate:
+                reply_text = health_agent.RED_FLAG_ESCALATION
+            else:
+                reply_text = ai_response.get("reply", "માફ કરશો, ફરી કહેશો?")
+
+            # Track conversation history for context in future turns
+            state["history"].append({"role": "user", "text": user_text})
+            state["history"].append({"role": "agent", "text": reply_text})
+
+        print(f"🩺 Arogya Sathi: {reply_text}")
 
         audio_url = await generate_murf_speech(reply_text)
 
         return {
             "ai_text": reply_text,
             "user_transcript": user_text,
+            "escalate": escalate,
             "audioUrl": audio_url,
             "updated_state": state
         }

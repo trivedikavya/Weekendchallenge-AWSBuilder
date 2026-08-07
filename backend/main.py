@@ -17,9 +17,16 @@ load_dotenv()
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="VoiceForBharat - Gujarati Voice Agent 🎙️",
-    description="Gujarati Voice Agent built with Murf Falcon TTS and Gemini for #VoiceForBharat",
-    version="1.0.0",
+    title="VoiceForBharat - Arogya Sathi (Health Access) 🩺",
+    description=(
+        "Day 2 - #VoiceForBharat, Health Access track. 'Arogya Sathi' is a "
+        "Gujarati-speaking AI health-access voice companion built with Murf "
+        "Falcon 2 TTS and Gemini. She has a job (understand a health concern "
+        "and point the caller to the right next step) and hard limits (never "
+        "diagnose, never name a medicine, always escalate red-flag symptoms "
+        "to a doctor). She is not a doctor and does not replace one."
+    ),
+    version="2.0.0",
 )
 
 # Allow frontend access (CORS)
