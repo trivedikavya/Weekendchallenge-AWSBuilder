@@ -3,120 +3,200 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Arogya Sathi - VoiceForBharat Health Access Agent</title>
+  <title>Arogya Sathi - Health Access Voice Agent</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', sans-serif; background: #0f172a; color: white; }
-    h1, .display-font { font-family: 'Space Grotesk', sans-serif; }
-    
-    .fade-in { animation: fadeIn 0.5s ease-out forwards; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    body { font-family: 'Inter', sans-serif; background: #071a1c; color: #eafffb; }
+    h1, h2, .display-font { font-family: 'Space Grotesk', sans-serif; }
 
-    .pulse-record { animation: pulseRecord 1.5s infinite; }
-    @keyframes pulseRecord {
-      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 
-      70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } 
-      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Mic button pulse while listening */
+    .pulse-listen { animation: pulseListen 1.4s infinite; }
+    @keyframes pulseListen {
+      0%   { box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.6); }
+      70%  { box-shadow: 0 0 0 18px rgba(45, 212, 191, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(45, 212, 191, 0); }
     }
+
+    /* Agent avatar breathing while speaking */
+    .breathe { animation: breathe 1.6s ease-in-out infinite; }
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); }
+      50%      { transform: scale(1.08); }
+    }
+
+    /* Connecting spinner */
+    .spinner {
+      border: 3px solid rgba(45, 212, 191, 0.2);
+      border-top-color: #2dd4bf;
+      border-radius: 50%;
+      width: 40px; height: 40px;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Fallback CSS waveform bars (used if Web Audio visualizer can't init) */
+    .bars-fallback span {
+      display: inline-block;
+      width: 4px;
+      margin: 0 2px;
+      border-radius: 2px;
+      background: currentColor;
+      animation: barBounce 1s ease-in-out infinite;
+    }
+    .bars-fallback span:nth-child(1) { height: 10px; animation-delay: 0s; }
+    .bars-fallback span:nth-child(2) { height: 18px; animation-delay: 0.15s; }
+    .bars-fallback span:nth-child(3) { height: 26px; animation-delay: 0.3s; }
+    .bars-fallback span:nth-child(4) { height: 18px; animation-delay: 0.45s; }
+    .bars-fallback span:nth-child(5) { height: 10px; animation-delay: 0.6s; }
+    @keyframes barBounce {
+      0%, 100% { transform: scaleY(0.4); }
+      50%      { transform: scaleY(1); }
+    }
+
+    .status-dot { width: 8px; height: 8px; border-radius: 999px; }
   </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-6 selection:bg-orange-500 selection:text-white relative overflow-hidden">
+<body class="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 selection:bg-teal-500 selection:text-white relative overflow-hidden">
 
-  <!-- Background FX (Tricolor Theme) -->
+  <!-- Background FX: calm teal/blue health theme -->
   <div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
-    <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-orange-500/20 rounded-full blur-[100px]"></div>
-    <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-green-500/20 rounded-full blur-[100px]"></div>
+    <div class="absolute top-[-15%] left-[-10%] w-96 h-96 bg-teal-500/15 rounded-full blur-[110px]"></div>
+    <div class="absolute bottom-[-15%] right-[-10%] w-96 h-96 bg-sky-500/15 rounded-full blur-[110px]"></div>
   </div>
 
-  <!-- Header -->
-  <header class="w-full max-w-2xl flex flex-col items-center text-center mb-6 fade-in">
-    <h1 class="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-400 via-white to-green-400 pb-2">
-      🩺 આરોગ્ય સાથી
-    </h1>
-    <p class="text-sm text-slate-400 tracking-widest mt-1 uppercase">#VoiceForBharat · Day 2 · Health Access Companion</p>
-  </header>
+  <div id="app" class="w-full max-w-md flex flex-col items-center">
 
-  <!-- Persona / Guardrail Disclaimer -->
-  <div class="w-full max-w-2xl mb-6 fade-in">
-    <div class="bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs md:text-sm rounded-xl px-4 py-3 flex items-start gap-2">
-      <span class="text-base leading-none">⚠️</span>
-      <p>
-        <strong>હું ડોક્ટર નથી.</strong> હું નિદાન કરતી નથી કે દવા સૂચવતી નથી.
-        કટોકટીમાં તરત જ <strong>108</strong> પર કૉલ કરો.
-        <span class="opacity-70">(I am not a doctor. I don't diagnose or prescribe medicine. In an emergency, call 108 immediately.)</span>
+    <!-- Persistent brand header -->
+    <header class="w-full flex flex-col items-center text-center mb-6 fade-in">
+      <div class="flex items-center gap-2">
+        <span class="text-3xl">🩺</span>
+        <h1 class="text-2xl sm:text-3xl font-bold display-font text-teal-300">આરોગ્ય સાથી</h1>
+      </div>
+      <p class="text-[11px] sm:text-xs text-slate-400 tracking-widest mt-1 uppercase">#VoiceForBharat · Health Access Companion</p>
+    </header>
+
+    <!-- ============ STATE 1: READY ============ -->
+    <section id="screen-ready" class="w-full bg-slate-900/60 backdrop-blur-md border border-teal-800/40 rounded-3xl p-8 text-center fade-in shadow-2xl">
+      <div class="w-20 h-20 mx-auto mb-5 rounded-full bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-4xl">🩺</div>
+      <h2 class="text-xl font-bold mb-2 display-font text-white">તમારી આરોગ્ય સાથી સાથે વાત કરો</h2>
+      <p class="text-slate-400 text-sm mb-6 leading-relaxed">
+        Talk to your AI health-access companion in Gujarati. She helps you understand
+        your concern and find the right next step — she does not diagnose or prescribe.
       </p>
-    </div>
-  </div>
 
-  <main class="w-full max-w-2xl flex-1 flex flex-col gap-6 relative z-10">
-    
-    <!-- START SCREEN -->
-    <div id="join-screen" class="bg-slate-800/50 backdrop-blur-md border border-slate-700 p-10 rounded-2xl text-center fade-in shadow-2xl">
-      <h2 class="text-2xl font-bold mb-4 display-font text-white">તમારી આરોગ્ય સાથી સાથે વાત કરો</h2>
-      <p class="text-slate-400 mb-8">Talk to your AI health-access companion. She'll help you figure out your next step — not diagnose or prescribe.</p>
-      
-      <button id="start-btn" 
-              class="w-full bg-gradient-to-r from-orange-600 to-green-600 hover:from-orange-500 hover:to-green-500 text-white font-bold py-4 rounded-xl text-lg transition-all transform hover:scale-[1.02] shadow-lg">
-        CONNECT TO AROGYA SATHI
+      <div class="bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs rounded-xl px-4 py-3 mb-6 text-left flex items-start gap-2">
+        <span>⚠️</span>
+        <span><strong>હું ડોક્ટર નથી.</strong> કટોકટીમાં તરત જ <strong>108</strong> પર કૉલ કરો.
+        <span class="opacity-70 block">(Not a doctor. In an emergency, call 108.)</span></span>
+      </div>
+
+      <button id="start-btn"
+              class="w-full bg-gradient-to-r from-teal-500 to-sky-500 hover:from-teal-400 hover:to-sky-400 text-slate-950 font-bold py-4 rounded-2xl text-base transition-all transform hover:scale-[1.02] shadow-lg shadow-teal-900/40">
+        🎙️ કૉલ શરૂ કરો · Start Call
       </button>
-    </div>
+    </section>
 
-    <!-- CHAT STAGE -->
-    <div id="game-stage" class="hidden flex flex-col gap-6 w-full fade-in">
+    <!-- ============ STATE 2: CONNECTING ============ -->
+    <section id="screen-connecting" class="hidden w-full bg-slate-900/60 backdrop-blur-md border border-teal-800/40 rounded-3xl p-10 text-center fade-in shadow-2xl flex-col items-center gap-4">
+      <div class="spinner"></div>
+      <p class="text-teal-200 font-semibold">જોડાઈ રહ્યા છીએ...</p>
+      <p class="text-slate-400 text-sm">Connecting you to Arogya Sathi. Please wait.</p>
+    </section>
+
+    <!-- ============ MIC PERMISSION ERROR ============ -->
+    <section id="screen-mic-error" class="hidden w-full bg-slate-900/60 backdrop-blur-md border border-red-800/40 rounded-3xl p-8 text-center fade-in shadow-2xl">
+      <div class="w-20 h-20 mx-auto mb-5 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-4xl">🎙️🚫</div>
+      <h2 class="text-xl font-bold mb-2 display-font text-white">માઇક્રોફોન બંધ છે</h2>
+      <p id="mic-error-detail" class="text-slate-400 text-sm mb-4">Microphone access was blocked, so Arogya Sathi cannot hear you.</p>
+      <div class="bg-slate-800/70 border border-slate-700 rounded-xl px-4 py-3 mb-6 text-left text-xs text-slate-300 space-y-1">
+        <p>1️⃣ Click the 🔒 / camera icon in your browser's address bar.</p>
+        <p>2️⃣ Set <strong>Microphone</strong> to "Allow".</p>
+        <p>3️⃣ Reload the page and press Try Again.</p>
+      </div>
+      <button id="mic-retry-btn"
+              class="w-full bg-gradient-to-r from-teal-500 to-sky-500 hover:from-teal-400 hover:to-sky-400 text-slate-950 font-bold py-3.5 rounded-2xl text-base transition-all transform hover:scale-[1.02] shadow-lg">
+        ફરી પ્રયત્ન કરો · Try Again
+      </button>
+    </section>
+
+    <!-- ============ IN-CALL SCREEN (Listening / Speaking live inside here) ============ -->
+    <section id="screen-call" class="hidden w-full flex-col gap-4 fade-in">
 
       <!-- Escalation Alert (guardrail: red-flag symptoms) -->
-      <div id="escalation-banner" class="hidden bg-red-600/90 border border-red-400 text-white text-sm md:text-base font-semibold rounded-xl px-5 py-4 items-center gap-3 fade-in">
+      <div id="escalation-banner" class="hidden bg-red-600/90 border border-red-400 text-white text-sm font-semibold rounded-2xl px-5 py-4 items-center gap-3 fade-in">
         <span class="text-2xl">🚨</span>
-        <span>તાત્કાલિક નજીકની હોસ્પિટલમાં જાવ અથવા <strong>108</strong> પર કૉલ કરો. Please seek emergency medical help now.</span>
+        <span>તાત્કાલિક નજીકની હોસ્પિટલમાં જાવ અથવા <strong>108</strong> પર કૉલ કરો. Please seek emergency help now.</span>
       </div>
 
       <!-- Dialogue Area -->
-      <div class="flex flex-col gap-4 min-h-[150px]">
-        
+      <div class="bg-slate-900/60 backdrop-blur-md border border-teal-800/30 rounded-3xl p-5 flex flex-col gap-4 min-h-[180px] shadow-xl">
+
         <!-- Agent (Arogya Sathi) -->
-        <div class="flex items-start gap-4 fade-in">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-green-600 flex items-center justify-center text-xl shadow-lg shrink-0 border border-white/10">🩺</div>
-          <div class="bg-slate-800/80 p-5 rounded-2xl rounded-tl-none border border-slate-700 shadow-md flex-1">
-            <div class="flex justify-between items-center mb-2">
-              <p class="text-xs font-bold text-orange-400 uppercase tracking-wider">Arogya Sathi</p>
-              <p id="status-label" class="text-[10px] font-bold text-slate-500 uppercase bg-slate-900/50 px-2 py-0.5 rounded">Ready</p>
-            </div>
-            <p id="agent-text" class="text-slate-300 text-lg leading-relaxed font-light">Waiting...</p>
+        <div class="flex items-start gap-3 fade-in">
+          <div id="agent-avatar" class="w-11 h-11 rounded-full bg-gradient-to-br from-teal-400 to-sky-500 flex items-center justify-center text-xl shadow-lg shrink-0 border border-white/10">🩺</div>
+          <div class="bg-slate-800/80 p-4 rounded-2xl rounded-tl-none border border-slate-700 shadow-md flex-1">
+            <p class="text-[11px] font-bold text-teal-300 uppercase tracking-wider mb-1.5">Arogya Sathi</p>
+            <p id="agent-text" class="text-slate-200 text-base leading-relaxed">Waiting...</p>
           </div>
         </div>
 
         <!-- Caller -->
-        <div id="player-bubble" class="flex items-start gap-4 flex-row-reverse hidden fade-in">
-          <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-xl shadow-lg shrink-0 border border-white/10">👤</div>
-          <div class="bg-slate-700/40 p-5 rounded-2xl rounded-tr-none border border-slate-600/50 flex-1">
-            <p class="text-xs font-bold text-green-400 uppercase mb-2 tracking-wider text-right">You</p>
-            <p id="player-text" class="text-slate-200 text-lg leading-relaxed italic text-right">...</p>
+        <div id="player-bubble" class="flex items-start gap-3 flex-row-reverse hidden fade-in">
+          <div class="w-11 h-11 rounded-full bg-slate-700 flex items-center justify-center text-xl shadow-lg shrink-0 border border-white/10">👤</div>
+          <div class="bg-slate-700/40 p-4 rounded-2xl rounded-tr-none border border-slate-600/50 flex-1">
+            <p class="text-[11px] font-bold text-sky-300 uppercase mb-1.5 tracking-wider text-right">You</p>
+            <p id="player-text" class="text-slate-200 text-base leading-relaxed italic text-right">...</p>
           </div>
         </div>
-
       </div>
-    </div>
 
-  </main>
-
-  <!-- Controls Footer -->
-  <div id="controls-footer" class="fixed bottom-8 left-0 right-0 justify-center z-50 hidden fade-in">
-    <div class="bg-slate-900/90 backdrop-blur-xl px-10 py-5 rounded-full shadow-2xl flex items-center gap-10 border border-slate-700/50 ring-1 ring-white/5">
-      <button onclick="location.reload()" class="group flex flex-col items-center gap-1 opacity-60 hover:opacity-100 transition-opacity">
-        <span class="text-xl">🔄</span>
-        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Reset</span>
-      </button>
-      
-      <button id="mic-btn" class="w-20 h-20 -mt-10 rounded-full bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-400 hover:to-rose-500 text-white flex items-center justify-center text-3xl transition-all hover:scale-110 shadow-[0_10px_30px_-10px_rgba(225,29,72,0.6)] border-4 border-slate-950 relative overflow-hidden">
-        <span class="relative z-10">🎙️</span>
-      </button>
-      
-      <div class="flex flex-col items-center gap-1 opacity-60">
-        <span class="text-xl">📡</span>
-        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Live</span>
+      <!-- Status / Who-is-speaking indicator -->
+      <div class="bg-slate-900/60 backdrop-blur-md border border-teal-800/30 rounded-2xl px-5 py-4 flex items-center justify-between gap-3 shadow-xl">
+        <div class="flex items-center gap-2">
+          <span id="status-dot" class="status-dot bg-slate-500"></span>
+          <span id="status-label" class="text-sm font-semibold text-slate-300">Tap the mic to talk</span>
+        </div>
+        <canvas id="visualizer" width="120" height="32" class="opacity-90"></canvas>
       </div>
-    </div>
+
+      <!-- Controls -->
+      <div class="flex items-center justify-center gap-8 py-2">
+        <button id="end-call-btn"
+                class="flex flex-col items-center gap-1 text-red-400 hover:text-red-300 transition-colors">
+          <span class="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-xl">📞</span>
+          <span class="text-[10px] font-bold uppercase tracking-wider">End Call</span>
+        </button>
+
+        <button id="mic-btn"
+                class="w-20 h-20 rounded-full bg-gradient-to-r from-teal-500 to-sky-500 hover:from-teal-400 hover:to-sky-400 text-slate-950 flex items-center justify-center text-3xl transition-all hover:scale-105 shadow-[0_10px_30px_-10px_rgba(45,212,191,0.6)] border-4 border-slate-950">
+          <span class="relative z-10">🎙️</span>
+        </button>
+
+        <div class="flex flex-col items-center gap-1 opacity-50">
+          <span class="w-12 h-12 rounded-full bg-slate-500/10 border border-slate-500/30 flex items-center justify-center text-xl">📡</span>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Live</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ STATE: CALL ENDED ============ -->
+    <section id="screen-ended" class="hidden w-full bg-slate-900/60 backdrop-blur-md border border-teal-800/40 rounded-3xl p-8 text-center fade-in shadow-2xl">
+      <div class="w-20 h-20 mx-auto mb-5 rounded-full bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-4xl">✅</div>
+      <h2 class="text-xl font-bold mb-2 display-font text-white">કૉલ સમાપ્ત થયો · Call Ended</h2>
+      <p class="text-slate-400 text-sm mb-6">
+        તમારી તબિયતનું ધ્યાન રાખો. જરૂર પડે તો ફરી કૉલ કરો.
+        <span class="block opacity-70">(Take care of your health. Call again anytime you need to.)</span>
+      </p>
+      <button id="restart-btn"
+              class="w-full bg-gradient-to-r from-teal-500 to-sky-500 hover:from-teal-400 hover:to-sky-400 text-slate-950 font-bold py-4 rounded-2xl text-base transition-all transform hover:scale-[1.02] shadow-lg">
+        🔄 ફરી શરૂ કરો · Start Again
+      </button>
+    </section>
+
   </div>
 
   <audio id="agent-audio" class="hidden"></audio>
