@@ -92,7 +92,3 @@ To verify the memory and consent tools, perform the following sequence:
 ---
 
 *Built for the 10 Days of Voice Agents Challenge by Murf AI.*
-
-```
-
-```
