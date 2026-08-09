@@ -8,6 +8,10 @@ venv/
 # Uploads/User-generated content
 uploads/
 
+# Day 4 - caller memory database (contains real caller data, never commit)
+backend/callers.db
+backend/*.db
+
 # Compiled Python files
 *.pyc
 __pycache__/

@@ -19,14 +19,16 @@ load_dotenv()
 app = FastAPI(
     title="VoiceForBharat - Arogya Sathi (Health Access) 🩺",
     description=(
-        "Day 2 - #VoiceForBharat, Health Access track. 'Arogya Sathi' is a "
+        "Day 4 - #VoiceForBharat, Health Access track. 'Arogya Sathi' is a "
         "Gujarati-speaking AI health-access voice companion built with Murf "
         "Falcon 2 TTS and Gemini. She has a job (understand a health concern "
-        "and point the caller to the right next step) and hard limits (never "
+        "and point the caller to the right next step), hard limits (never "
         "diagnose, never name a medicine, always escalate red-flag symptoms "
-        "to a doctor). She is not a doctor and does not replace one."
+        "to a doctor), and a persistent memory (SQLite) - she can look up a "
+        "returning caller and save new facts about them via real function "
+        "calls, only after asking permission first."
     ),
-    version="2.0.0",
+    version="4.0.0",
 )
 
 # Allow frontend access (CORS)

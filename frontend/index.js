@@ -1,5 +1,16 @@
 document.addEventListener("DOMContentLoaded", () => {
   const API_BASE = "http://localhost:5000";
+  const CALLER_ID_KEY = "arogya_sathi_caller_id";
+
+  // Day 4: a persistent caller ID (kept in this browser's localStorage) is
+  // how the agent recognises "the same caller calling again" across
+  // separate sessions, so it can look up and continue from memory.
+  function getStoredCallerId() {
+    return localStorage.getItem(CALLER_ID_KEY);
+  }
+  function storeCallerId(id) {
+    if (id) localStorage.setItem(CALLER_ID_KEY, id);
+  }
 
   // --- Screens (the 5 required agent states) ---
   const screens = {
@@ -147,7 +158,15 @@ document.addEventListener("DOMContentLoaded", () => {
     ensureAudioContext(); // must be created on a user gesture
 
     try {
-      const res = await axios.post(`${API_BASE}/start-session`);
+      const storedId = getStoredCallerId();
+      const url = storedId
+        ? `${API_BASE}/start-session?user_id=${encodeURIComponent(storedId)}`
+        : `${API_BASE}/start-session`;
+      const res = await axios.post(url);
+
+      // Remember this caller's ID for next time (new callers get one back
+      // from the backend on their very first call).
+      if (res.data.caller_id) storeCallerId(res.data.caller_id);
 
       agentText.textContent = res.data.text;
       if (res.data.initial_state) currentState = res.data.initial_state;
