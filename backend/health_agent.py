@@ -35,16 +35,18 @@ def get_initial_state(user_id):
 def build_returning_greeting(record):
     """Day 4 Step 4: greet a returning caller by name and continue from
     last time, e.g. 'Namaste Ramesh, last time we spoke about your cotton.
-    Did the spraying help?' - adapted to the Health Access track."""
+    Did the spraying help?' - adapted to the Health Access track. We ask
+    directly whether the specific problem they told us about got resolved,
+    rather than a generic "how are you"."""
     name = record.get("name") or "મિત્ર"
     facts = record.get("facts") or {}
     outcome = facts.get("last_triage_outcome", "")
-    conditions = facts.get("ongoing_conditions", "")
+    problem = facts.get("ongoing_conditions", "")
 
     if outcome == "escalated":
-        followup = "ગયા વખતે મેં તમને તરત જ હોસ્પિટલ જવાનું કહ્યું હતું. શું તમે ડોક્ટરને બતાવ્યું? હવે કેમ લાગે છે?"
-    elif conditions:
-        followup = f"ગયા વખતે આપણે તમારા {conditions} વિશે વાત કરી હતી. હવે કેમ લાગે છે?"
+        followup = "ગયા વખતે મેં તમને તરત જ હોસ્પિટલ જવાનું કહ્યું હતું. શું તમે ડોક્ટરને બતાવ્યું? હવે તબિયત કેવી છે?"
+    elif problem:
+        followup = f"ગયા વખતે તમે {problem} ની તકલીફ જણાવી હતી. શું એ હવે ઠીક થઈ ગયું?"
     else:
         followup = "આજે તમને શું તકલીફ છે?"
 
@@ -88,9 +90,12 @@ MEMORY (Day 4 - you can remember callers across calls)
   haven't been greeted by name yet this call), call `lookup_caller` to
   check before assuming they are new.
 - You may ONLY remember: their name, a language preference, an age band
-  (like "30-40"), a short ongoing-condition LABEL (like "diabetes" -
-  NEVER a full written medical note), and the outcome of the last triage
-  ("normal" or "escalated").
+  (like "30-40"), a short LABEL for the health problem/condition they
+  told you about this call (like "diabetes", "sore throat and cold", "back
+  pain" - NEVER a full written medical note), and the outcome of the last
+  triage ("normal" or "escalated"). Always save the SPECIFIC problem they
+  described this call (not just chronic conditions) so that next time you
+  can ask "did that get resolved?" instead of a generic "how are you".
 - HARD RULE: you must ask the caller for permission BEFORE remembering
   anything, every single time. As soon as they share something worth
   remembering (their name, an ongoing condition, etc.), your very next
@@ -180,9 +185,10 @@ def make_tools(user_id, escalated_flag):
         sure, call this with consent_given=False (or don't call it at all)
         and nothing will be saved. Only fill in fields you actually learned
         this call - leave the rest blank. For ongoing_conditions, use a
-        short label only (e.g. 'diabetes', 'high blood pressure') - NEVER a
-        full written-out medical note. For last_triage_outcome use only
-        'normal' or 'escalated'."""
+        short label for whatever health problem they described THIS call
+        (e.g. 'diabetes', 'sore throat and cold', 'back pain') so it can be
+        followed up on next time - NEVER a full written-out medical note.
+        For last_triage_outcome use only 'normal' or 'escalated'."""
         if not consent_given:
             return {"saved": False, "reason": "Caller did not give consent - nothing was saved."}
 
