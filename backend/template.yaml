@@ -1,0 +1,135 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Story Dice — collaborative story generator.
+  API Gateway + Lambda (Python) + DynamoDB + Amazon Bedrock (Nova Micro).
+
+Parameters:
+  BedrockModelId:
+    Type: String
+    Default: amazon.nova-micro-v1:0
+    Description: Bedrock model id to use for story generation (Nova Micro is cheapest / Free-Tier friendly).
+  StageName:
+    Type: String
+    Default: prod
+    Description: API Gateway stage name.
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 10
+    MemorySize: 128
+    Tracing: Disabled
+
+Resources:
+
+  # ── API Gateway ──────────────────────────────────────────
+  StoryDiceApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref StageName
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type'"
+        AllowOrigin: "'*'"
+
+  # ── DynamoDB Table ───────────────────────────────────────
+  StoryDiceTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: StoryDiceStories
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+
+  # ── /roll ────────────────────────────────────────────────
+  RollFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: roll/
+      Handler: handler.handler
+      Events:
+        RollApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StoryDiceApi
+            Path: /roll
+            Method: GET
+
+  # ── /generate ────────────────────────────────────────────
+  GenerateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: generate/
+      Handler: handler.handler
+      Timeout: 30
+      Environment:
+        Variables:
+          BEDROCK_MODEL_ID: !Ref BedrockModelId
+          BEDROCK_REGION: !Ref AWS::Region
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:Converse
+              Resource: '*'
+      Events:
+        GenerateApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StoryDiceApi
+            Path: /generate
+            Method: POST
+
+  # ── /save ────────────────────────────────────────────────
+  SaveFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: save/
+      Handler: handler.handler
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StoryDiceTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref StoryDiceTable
+      Events:
+        SaveApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StoryDiceApi
+            Path: /save
+            Method: POST
+
+  # ── /stories ─────────────────────────────────────────────
+  StoriesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: stories/
+      Handler: handler.handler
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StoryDiceTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref StoryDiceTable
+      Events:
+        StoriesApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StoryDiceApi
+            Path: /stories
+            Method: GET
+
+Outputs:
+  ApiUrl:
+    Description: Base URL for the Story Dice API — paste this into frontend/config.js
+    Value: !Sub "https://${StoryDiceApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}"
+  TableName:
+    Description: DynamoDB table storing saved stories
+    Value: !Ref StoryDiceTable

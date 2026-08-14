@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>🎲 Story Dice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Quicksand:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-blobs" aria-hidden="true">
+    <span class="blob blob-1"></span>
+    <span class="blob blob-2"></span>
+    <span class="blob blob-3"></span>
+  </div>
+
+  <header class="app-header">
+    <h1>🎲 Story Dice</h1>
+    <p class="tagline">Roll the dice of imagination and spin up a whimsical tale!</p>
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="play">✨ Play</button>
+      <button class="tab-btn" data-tab="saved">📚 Saved Stories</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- PLAY SECTION -->
+    <section id="play" class="tab-panel active">
+
+      <div class="dice-row" id="diceRow">
+        <div class="die" data-category="Place">
+          <div class="die-inner">
+            <div class="die-face">
+              <span class="die-label">📍 Place</span>
+              <span class="die-word" id="wordPlace">Roll to begin!</span>
+            </div>
+          </div>
+        </div>
+        <div class="die" data-category="Object">
+          <div class="die-inner">
+            <div class="die-face">
+              <span class="die-label">🔑 Object</span>
+              <span class="die-word" id="wordObject">Roll to begin!</span>
+            </div>
+          </div>
+        </div>
+        <div class="die" data-category="Trait">
+          <div class="die-inner">
+            <div class="die-face">
+              <span class="die-label">🧑 Trait</span>
+              <span class="die-word" id="wordTrait">Roll to begin!</span>
+            </div>
+          </div>
+        </div>
+        <div class="die" data-category="Twist">
+          <div class="die-inner">
+            <div class="die-face">
+              <span class="die-label">🌀 Twist</span>
+              <span class="die-word" id="wordTwist">Roll to begin!</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="rollBtn" class="btn btn-primary">🎲 Roll</button>
+        <button id="rerollBtn" class="btn btn-secondary" disabled>🔄 Reroll</button>
+        <button id="generateBtn" class="btn btn-accent" disabled>✍️ Generate Story</button>
+      </div>
+
+      <div id="loadingState" class="loading-state hidden">
+        <div class="spinner"></div>
+        <p id="loadingText">Rolling the dice of imagination...</p>
+      </div>
+
+      <div id="errorState" class="error-state hidden">
+        <p id="errorText">Oops! Something went wrong.</p>
+        <button id="dismissErrorBtn" class="btn btn-secondary btn-sm">Dismiss</button>
+      </div>
+
+      <div id="storyCard" class="story-card hidden">
+        <div class="story-card-header">
+          <h2>📖 Your Story</h2>
+        </div>
+        <p id="storyText" class="story-text"></p>
+        <div class="story-elements" id="storyElements"></div>
+        <div class="story-actions">
+          <button id="saveBtn" class="btn btn-primary">💾 Save Story</button>
+          <span id="saveStatus" class="save-status"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SAVED STORIES SECTION -->
+    <section id="saved" class="tab-panel">
+      <div class="saved-header">
+        <h2>📚 Saved Stories</h2>
+        <button id="refreshSavedBtn" class="btn btn-secondary btn-sm">🔄 Refresh</button>
+      </div>
+      <div id="savedLoading" class="loading-state hidden">
+        <div class="spinner"></div>
+        <p>Fetching your storybook...</p>
+      </div>
+      <div id="savedError" class="error-state hidden">
+        <p id="savedErrorText">Couldn't load saved stories.</p>
+      </div>
+      <div id="savedEmpty" class="empty-state hidden">
+        <p>No stories saved yet. Go roll some dice and make one! 🎲</p>
+      </div>
+      <div id="savedList" class="saved-list"></div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>Made with 🎲 + ✨ — Story Dice</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
