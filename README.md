@@ -34,8 +34,8 @@ v          v          v          v
 |          |          |
 v          +----+-----+
 [Amazon Bedrock]       |
-(Nova Micro)          v
-[Amazon DynamoDB]
+(Nova Micro)           v
+            [Amazon DynamoDB]
 
 ```
 
