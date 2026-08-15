@@ -1,4 +1,4 @@
-# 🎲 Story Dice AI — Creative Story Generator
+#  Story Dice AI Creative Story Generator
 
 [![AWS Serverless](https://img.shields.io/badge/AWS-Serverless-orange.svg)](https://aws.amazon.com/)
 [![Amazon Bedrock](https://img.shields.io/badge/Amazon-Bedrock%20Nova-blue.svg)](https://aws.amazon.com/bedrock/)
@@ -11,13 +11,13 @@ Roll 4 virtual dice (**Place**, **Object**, **Trait**, and **Twist**) and let **
 
 ---
 
-## 🚀 Live Demo & Links
+##  Live Demo & Links
 
 - **Live Application**: [https://main.d248s959nwwhyo.amplifyapp.com/](https://main.d248s959nwwhyo.amplifyapp.com/)
 
 ---
 
-## 🏗️ Architecture Overview
+##  Architecture Overview
 
 
 ```
