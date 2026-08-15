@@ -23,7 +23,7 @@ story-dice/
     └── stories/handler.py     # GET  /stories     (reads from DynamoDB)
 ```
 
-## How this was built (already done for you)
+## How this was built 
 
 1. ✅ **Frontend with mock data** — `frontend/` runs 100% standalone. Rolling,
    generating, saving and viewing stories all work with fake/local data
