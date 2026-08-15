@@ -1,3 +1,9 @@
+<img width="1388" height="679" alt="image" src="https://github.com/user-attachments/assets/6a5710ba-71db-4de8-96a5-0dc23e523166" />
+<img width="1461" height="839" alt="image" src="https://github.com/user-attachments/assets/9cfeb3d9-3901-4a7e-96d6-1318f220b155" />
+<img width="1266" height="836" alt="image" src="https://github.com/user-attachments/assets/2e9e65d6-bacd-4eda-9535-01e13c044932" />
+
+
+
 #  Story Dice AI Creative Story Generator
 
 [![AWS Serverless](https://img.shields.io/badge/AWS-Serverless-orange.svg)](https://aws.amazon.com/)
