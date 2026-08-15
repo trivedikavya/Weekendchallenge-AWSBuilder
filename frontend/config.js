@@ -12,6 +12,6 @@
 // ─────────────────────────────────────────────────────────────
 
 const CONFIG = {
-  USE_MOCK: true,
-  API_BASE_URL: "" // <-- paste your API Gateway URL here (no trailing slash)
+    USE_MOCK: false,
+    API_BASE_URL: "https://hqq262g0kl.execute-api.us-east-1.amazonaws.com/prod"
 };
