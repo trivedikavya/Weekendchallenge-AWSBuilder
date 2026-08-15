@@ -25,12 +25,12 @@ story-dice/
 
 ## How this was built 
 
-1. ✅ **Frontend with mock data** — `frontend/` runs 100% standalone. Rolling,
+1.  **Frontend with mock data** — `frontend/` runs 100% standalone. Rolling,
    generating, saving and viewing stories all work with fake/local data
    because `config.js` has `USE_MOCK: true`.
-2. ✅ **Lambda functions** — 4 Python handlers in `backend/`, one per endpoint.
-3. ✅ **Wiring** — `app.js` already knows how to call the real API; you just
+2.  **Lambda functions** — 4 Python handlers in `backend/`, one per endpoint.
+3.  **Wiring** — `app.js` already knows how to call the real API; you just
    flip a flag once your backend is deployed (Step 5 below).
-4. ✅ **DynamoDB save/load** — `save/handler.py` and `stories/handler.py`.
+4.  **DynamoDB save/load** — `save/handler.py` and `stories/handler.py`.
 
 
